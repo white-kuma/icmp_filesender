@@ -8,6 +8,7 @@ import socket
 import sys
 import os.path
 import struct
+import time
 
 # supported icmp types
 ECHO_REPLY = 0
@@ -79,12 +80,14 @@ if __name__ == "__main__":
 	if not os.path.exists(filename):
 		print("Error: Filename {0} does not exist.".format(filename))
 		exit(1)
-	if not (os.path.getsize(filename) <= (ICMP_DATASIZE * 0xFFFE)):
+	filesize = os.path.getsize(filename)
+	if not (filesize <= (ICMP_DATASIZE * 0xFFFE)):
 		print("Error: Size of {0} is too large.".format(filename)) 
 		exit(1)
 		
 	# create raw socket (root required) and send a file by using icmp
 	seq_cnt = 0
+	sended_size = 0
 	with socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP) as sock:
 		with open(filename, "rb") as f:
 			while True:
@@ -98,5 +101,8 @@ if __name__ == "__main__":
 				icmpheader = buildICMPHeader(data, identify = 1192, seq = seq_cnt)
 				sock.sendto(icmpheader, (ipaddr, 0))
 				seq_cnt += 1
-	
+				sended_size += len(data)
+				percentage = sended_size * 100 / filesize
+				sys.stdout.write("{0:.2f} % ( {1:d} Byte )\r".format(percentage, filesize) )
+				time.sleep(0.1)
 	exit(0)
